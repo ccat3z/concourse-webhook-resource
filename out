@@ -1,15 +1,21 @@
-#!/bin/bash
+#! /bin/sh
 
 set -e
 
 exec 3>&1
 exec 1>&2
 
-# for jq
-PATH=/usr/local/bin:$PATH
+# parse payload
+payload=$(mktemp)
+cat > "$payload" <&0
 
-webhook_url=$(jq -r '.source.url')
-http_method=$(jq -r '.params.http_method // "GET"')
-body=$(jq -r '.params.body // ""')
+webhook_url=$(jq -r '.source.url' < "$payload")
+http_method=$(jq -r '.params.http_method // "GET"' < "$payload")
+body=$(jq -r '.params.body // ""' < "$payload")
+
+# clear temp file
+rm "$payload"
 
 curl -s -X "${http_method}" --data-urlencode "${body}" "${webhook_url}"
+
+echo '{"version":{"ref":"none"}}' >&3
